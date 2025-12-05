@@ -88,7 +88,7 @@ app.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Contraseña incorrecta." });
     }
 
-    const rol = encontrado.Rol?.toLowerCase(); // "tecnico" | "miembro"
+    const rol = encontrado.Rol?.toLowerCase();
 
     if (rol !== "tecnico" && rol !== "miembro") {
       return res.status(400).json({ message: "El rol del usuario no es válido." });
@@ -101,14 +101,13 @@ app.post("/login", async (req, res) => {
         correo: encontrado.Correo,
         rol: rol,
         esTecnico: rol === "tecnico",
-        esMiembro: rol === "miembro"
+        esMiembro: rol === "miembro",
       },
     });
   } catch (error) {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
-
 
 app.post("/leer", async (req, res) => {
   try {
@@ -202,6 +201,15 @@ app.get("/tareas/:usuarioId", async (req, res) => {
 
     const tareas = await Tareas.find(query).sort({ createdAt: -1 });
 
+    res.status(200).json(tareas);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener tareas." });
+  }
+});
+
+app.get("/tareas-tecnico", async (req, res) => {
+  try {
+    const tareas = await Tareas.find({}).sort({ createdAt: -1 });
     res.status(200).json(tareas);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener tareas." });
