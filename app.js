@@ -88,18 +88,27 @@ app.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Contraseña incorrecta." });
     }
 
+    const rol = encontrado.Rol?.toLowerCase(); // "tecnico" | "miembro"
+
+    if (rol !== "tecnico" && rol !== "miembro") {
+      return res.status(400).json({ message: "El rol del usuario no es válido." });
+    }
+
     res.status(200).json({
       message: "Inicio de sesión exitoso",
       user: {
         id: encontrado._id.toString(),
         correo: encontrado.Correo,
-        rol: encontrado.Rol,
+        rol: rol,
+        esTecnico: rol === "tecnico",
+        esMiembro: rol === "miembro"
       },
     });
   } catch (error) {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
+
 
 app.post("/leer", async (req, res) => {
   try {
