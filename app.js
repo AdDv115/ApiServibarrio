@@ -27,7 +27,7 @@ const UsuariosSchema = new mongoose.Schema({
     Rol: String
 });
 
-const Usuarios = mongoose.model('Usuarios', UsuariosSchema);
+const Usuarios = mongoose.models.Usuarios || mongoose.model('Usuarios', UsuariosSchema);
 
 app.post('/crear', async (req, res) => {
     try {
@@ -160,7 +160,7 @@ const TareaSchema = new mongoose.Schema({
 });
 
 const Tareas = mongoose.model('Tareas', TareaSchema);
-cl
+
 app.post('/tareas', async (req, res) => {
   try {
     const { titulo, descripcion, usuarioId, rolAsignado } = req.body;
