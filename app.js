@@ -146,6 +146,64 @@ app.delete('/eliminar/:id',async(req,res)=>{
     }
 })
 
+//Funciones para las tareas
+
+const TareaSchema = new mongoose.Schema({
+  titulo: String,
+  descripcion: String,
+  usuarioId: String,
+  rolAsignado: String,
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
+});
+
+const Tareas = mongoose.model('Tareas', TareaSchema);
+cl
+app.post('/tareas', async (req, res) => {
+  try {
+    const { titulo, descripcion, usuarioId, rolAsignado } = req.body;
+
+    if (!titulo || !usuarioId || !rolAsignado) {
+      return res.status(400).send("Faltan campos obligatorios.");
+    }
+
+    const nueva = new Tareas({
+      titulo,
+      descripcion,
+      usuarioId,
+      rolAsignado
+    });
+
+    await nueva.save();
+
+    res.status(201).json({ message: "Tarea creada", tarea: nueva });
+  } catch (error) {
+    console.error("Error al crear tarea:", error);
+    res.status(500).send("Error interno");
+  }
+});
+
+app.get('/tareas/:usuarioId', async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const { rol } = req.query;
+
+    const query = { usuarioId };
+    if (rol) query.rolAsignado = rol;
+
+    const tareas = await Tareas.find(query).sort({ createdAt: -1 });
+
+    res.status(200).json(tareas);
+  } catch (error) {
+    console.error("Error al listar tareas:", error);
+    res.status(500).send("Error al obtener tareas.");
+  }
+});
+ 
+
+
 const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Servidor Express escuchando en el puerto ${PORT}`);
