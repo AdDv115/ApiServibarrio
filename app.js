@@ -153,6 +153,7 @@ const TareaSchema = new mongoose.Schema({
   descripcion: String,
   usuarioId: String,
   rolAsignado: String,
+  fecha: { type: Date, required: true },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -173,7 +174,8 @@ app.post('/tareas', async (req, res) => {
       titulo,
       descripcion,
       usuarioId,
-      rolAsignado
+      rolAsignado,
+      fecha: new Date(fecha)
     });
 
     await nueva.save();
