@@ -88,9 +88,10 @@ app.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Contraseña incorrecta." });
     }
 
-    const rol = encontrado.Rol?.toLowerCase();
+    const rolDb = encontrado.Rol || "";
+    const rol = rolDb.toLowerCase();
 
-    if (rol !== "tecnico" && rol !== "Usuario") {
+    if (rol !== "tecnico" && rol !== "usuario") {
       return res.status(400).json({ message: "El rol del usuario no es válido." });
     }
 
@@ -101,7 +102,7 @@ app.post("/login", async (req, res) => {
         correo: encontrado.Correo,
         rol: rol,
         esTecnico: rol === "tecnico",
-        esMiembro: rol === "Usuario",
+        esMiembro: rol === "usuario",
       },
     });
   } catch (error) {
@@ -209,7 +210,7 @@ app.get("/tareas/:usuarioId", async (req, res) => {
 
 app.get("/tareas-tecnico", async (req, res) => {
   try {
-    const tareas = await Tareas.find({}).sort({ createdAt: -1 });
+    const tareas = await Tareas.find({ rolAsignado: "usuario" }).sort({ createdAt: -1 });
     res.status(200).json(tareas);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener tareas." });
