@@ -90,7 +90,7 @@ app.post("/login", async (req, res) => {
 
     const rol = encontrado.Rol?.toLowerCase();
 
-    if (rol !== "tecnico" && rol !== "miembro") {
+    if (rol !== "tecnico" && rol !== "Usuario") {
       return res.status(400).json({ message: "El rol del usuario no es válido." });
     }
 
@@ -101,7 +101,7 @@ app.post("/login", async (req, res) => {
         correo: encontrado.Correo,
         rol: rol,
         esTecnico: rol === "tecnico",
-        esMiembro: rol === "miembro",
+        esMiembro: rol === "Usuario",
       },
     });
   } catch (error) {
