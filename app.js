@@ -29,6 +29,13 @@ const UsuariosSchema = new mongoose.Schema({
 
 const Usuarios = mongoose.models.Usuarios || mongoose.model("Usuarios", UsuariosSchema);
 
+const normalizeRol = (rol) => {
+  if (!rol) return "";
+  const r = String(rol).toLowerCase();
+  if (r === "miembro") return "usuario";
+  return r;
+};
+
 const ProductoSchema = new mongoose.Schema({
   prod: String,
   cant: Number,
@@ -88,8 +95,7 @@ app.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Contraseña incorrecta." });
     }
 
-    const rolDb = encontrado.Rol || "";
-    const rol = rolDb.toLowerCase();
+    const rol = normalizeRol(encontrado.Rol || "");
 
     if (rol !== "tecnico" && rol !== "usuario") {
       return res.status(400).json({ message: "El rol del usuario no es válido." });
@@ -171,16 +177,21 @@ app.delete("/eliminar/:id", async (req, res) => {
 app.post("/tareas", async (req, res) => {
   try {
     const { titulo, descripcion, usuarioId, rolAsignado, fecha } = req.body;
+    const rolNormalizado = normalizeRol(rolAsignado);
 
-    if (!usuarioId || !rolAsignado || !fecha) {
+    if (!usuarioId || !rolNormalizado || !fecha) {
       return res.status(400).json({ message: "Faltan campos obligatorios." });
+    }
+
+    if (rolNormalizado !== "usuario" && rolNormalizado !== "tecnico") {
+      return res.status(400).json({ message: "Rol asignado no válido." });
     }
 
     const nueva = new Tareas({
       titulo,
       descripcion,
       usuarioId,
-      rolAsignado,
+      rolAsignado: rolNormalizado,
       fecha: new Date(fecha),
     });
 
@@ -195,7 +206,7 @@ app.post("/tareas", async (req, res) => {
 app.get("/tareas/:usuarioId", async (req, res) => {
   try {
     const { usuarioId } = req.params;
-    const { rol } = req.query;
+    const rol = normalizeRol(req.query.rol);
 
     const query = { usuarioId };
     if (rol) query.rolAsignado = rol;
@@ -210,7 +221,9 @@ app.get("/tareas/:usuarioId", async (req, res) => {
 
 app.get("/tareas-tecnico", async (req, res) => {
   try {
-    const tareas = await Tareas.find({ rolAsignado: "usuario" }).sort({ createdAt: -1 });
+    const tareas = await Tareas.find({
+      rolAsignado: { $in: ["usuario", "miembro"] },
+    }).sort({ createdAt: -1 });
     res.status(200).json(tareas);
   } catch (error) {
     res.status(500).json({ message: "Error al obtener tareas." });
