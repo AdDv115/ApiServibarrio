@@ -34,6 +34,7 @@ const normalizeRol = (rol) => {
   if (!rol) return "";
   const r = String(rol).toLowerCase();
   if (r === "miembro") return "usuario";
+  if (r === "admin") return "admin";
   return r;
 };
 
@@ -69,12 +70,17 @@ const Tareas = mongoose.models.Tareas || mongoose.model("Tareas", TareaSchema);
 
 app.post("/crear", async (req, res) => {
   try {
+    const rolNormalizado = normalizeRol(req.body.Rol);
+    if (!rolNormalizado || !["usuario", "tecnico", "admin"].includes(rolNormalizado)) {
+      return res.status(400).json({ message: "Rol inválido." });
+    }
+
     const nuevo = new Usuarios({
       Usuario: req.body.Usuario,
       Correo: req.body.Correo,
       Telefono: req.body.Telefono,
       Contra: req.body.Contra,
-      Rol: req.body.Rol,
+      Rol: rolNormalizado,
       Foto: req.body.Foto,
     });
 
@@ -105,7 +111,7 @@ app.post("/login", async (req, res) => {
 
     const rol = normalizeRol(encontrado.Rol || "");
 
-    if (rol !== "tecnico" && rol !== "usuario") {
+    if (rol !== "tecnico" && rol !== "usuario" && rol !== "admin") {
       return res.status(400).json({ message: "El rol del usuario no es válido." });
     }
 
@@ -117,6 +123,7 @@ app.post("/login", async (req, res) => {
         rol: rol,
         esTecnico: rol === "tecnico",
         esMiembro: rol === "usuario",
+        esAdmin: rol === "admin",
         foto: encontrado.Foto || "",
         usuario: encontrado.Usuario || "",
         telefono: encontrado.Telefono || "",
@@ -140,10 +147,23 @@ app.get("/usuarios/:id", async (req, res) => {
   }
 });
 
+app.get("/usuarios", async (_req, res) => {
+  try {
+    const users = await Usuarios.find().sort({ Usuario: 1 });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Error al listar usuarios." });
+  }
+});
+
 app.put("/usuarios/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { Usuario, Correo, Telefono, Foto } = req.body;
+    const { Usuario, Correo, Telefono, Foto, Rol } = req.body;
+    const rolNormalizado = Rol ? normalizeRol(Rol) : undefined;
+    if (rolNormalizado && !["usuario", "tecnico", "admin"].includes(rolNormalizado)) {
+      return res.status(400).json({ message: "Rol inválido." });
+    }
     const actualizado = await Usuarios.findByIdAndUpdate(
       id,
       {
@@ -151,6 +171,7 @@ app.put("/usuarios/:id", async (req, res) => {
         ...(Correo ? { Correo } : {}),
         ...(Telefono ? { Telefono } : {}),
         ...(Foto ? { Foto } : { Foto: "" }),
+        ...(rolNormalizado ? { Rol: rolNormalizado } : {}),
       },
       { new: true }
     );
