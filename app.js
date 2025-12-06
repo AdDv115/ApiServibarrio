@@ -25,6 +25,7 @@ const UsuariosSchema = new mongoose.Schema({
   Telefono: Number,
   Contra: String,
   Rol: String,
+  Foto: String,
 });
 
 const Usuarios = mongoose.models.Usuarios || mongoose.model("Usuarios", UsuariosSchema);
@@ -51,6 +52,12 @@ const TareaSchema = new mongoose.Schema({
   descripcion: String,
   usuarioId: String,
   rolAsignado: String,
+  estado: {
+    type: String,
+    default: "pendiente",
+  },
+  tecnicoId: String,
+  tecnicoCorreo: String,
   fecha: { type: Date, required: true },
   createdAt: {
     type: Date,
@@ -68,10 +75,11 @@ app.post("/crear", async (req, res) => {
       Telefono: req.body.Telefono,
       Contra: req.body.Contra,
       Rol: req.body.Rol,
+      Foto: req.body.Foto,
     });
 
     await nuevo.save();
-    res.status(201).json({ message: "Usuario Registrado" });
+    res.status(201).json({ message: "Usuario Registrado", user: nuevo });
   } catch (error) {
     res.status(500).json({ message: "Error al registrar usuario: " + error.message });
   }
@@ -109,10 +117,51 @@ app.post("/login", async (req, res) => {
         rol: rol,
         esTecnico: rol === "tecnico",
         esMiembro: rol === "usuario",
+        foto: encontrado.Foto || "",
+        usuario: encontrado.Usuario || "",
+        telefono: encontrado.Telefono || "",
       },
     });
   } catch (error) {
     res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
+app.get("/usuarios/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await Usuarios.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener usuario." });
+  }
+});
+
+app.put("/usuarios/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { Usuario, Correo, Telefono, Foto } = req.body;
+    const actualizado = await Usuarios.findByIdAndUpdate(
+      id,
+      {
+        ...(Usuario ? { Usuario } : {}),
+        ...(Correo ? { Correo } : {}),
+        ...(Telefono ? { Telefono } : {}),
+        ...(Foto ? { Foto } : { Foto: "" }),
+      },
+      { new: true }
+    );
+
+    if (!actualizado) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    res.status(200).json({ message: "Perfil actualizado", user: actualizado });
+  } catch (error) {
+    res.status(500).json({ message: "Error al actualizar perfil." });
   }
 });
 
@@ -192,6 +241,7 @@ app.post("/tareas", async (req, res) => {
       descripcion,
       usuarioId,
       rolAsignado: rolNormalizado,
+      estado: "pendiente",
       fecha: new Date(fecha),
     });
 
@@ -200,6 +250,34 @@ app.post("/tareas", async (req, res) => {
     res.status(201).json({ message: "Tarea creada", tarea: nueva });
   } catch (error) {
     res.status(500).json({ message: "Error interno" });
+  }
+});
+
+app.put("/tareas/:id/aceptar", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tecnicoId, tecnicoCorreo } = req.body;
+    if (!tecnicoId) {
+      return res.status(400).json({ message: "Falta tecnicoId." });
+    }
+
+    const actualizada = await Tareas.findByIdAndUpdate(
+      id,
+      {
+        estado: "aceptada",
+        tecnicoId,
+        tecnicoCorreo,
+      },
+      { new: true }
+    );
+
+    if (!actualizada) {
+      return res.status(404).json({ message: "Tarea no encontrada." });
+    }
+
+    res.status(200).json({ message: "Tarea aceptada", tarea: actualizada });
+  } catch (error) {
+    res.status(500).json({ message: "Error al aceptar tarea." });
   }
 });
 
